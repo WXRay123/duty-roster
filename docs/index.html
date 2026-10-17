@@ -456,8 +456,8 @@ function pinPress(k){
 async function pinCheck(){
   try{
     const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pinBuf})}).catch(()=>null);
-    if(r===null || r.status===404){
-      /* 纯静态托管：本地校验 */
+    if(r===null || (r.status!==200 && r.status!==401)){
+      /* 纯静态托管（404/405等）：本地校验 */
       return localPin();
     }
     if(r.ok){
