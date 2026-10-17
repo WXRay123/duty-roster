@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>陪护值班表</title>
+<style>
+  :root{
+    --blue:#3a7bd5; --green:#2e9e5b; --orange:#e8890c; --red:#d94040; --purple:#7e57c2;
+    --bg:#f4f5f7; --card:#fff; --text:#2c3e50; --muted:#8a94a0; --line:#e4e8ee;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:17px; line-height:1.55;}
+  .wrap{max-width:680px; margin:0 auto; padding:0 12px 48px;}
+  /* 顶栏 */
+  header{background:linear-gradient(135deg,#3a7bd5,#5a9ae0); color:#fff; padding:20px 16px 16px; margin:0 -12px 14px;}
+  header h1{font-size:24px; font-weight:600;}
+  header .sub{font-size:14px; opacity:.85; margin-top:2px;}
+  .card{background:var(--card); border-radius:14px; padding:18px 16px; margin-bottom:14px; box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .card h2{font-size:18px; margin-bottom:12px; display:flex; align-items:center; gap:8px;}
+  .card h2 .tag{margin-left:auto; font-size:13px; color:var(--muted); font-weight:normal;}
+  /* 今日大卡 */
+  .today-card{display:flex; align-items:center; gap:16px;}
+  .today-card .av{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;color:#fff;flex-shrink:0;}
+  .today-card .txt .lbl{font-size:14px; color:var(--muted);}
+  .today-card .txt .nm{font-size:34px; font-weight:700; line-height:1.2;}
+  /* 一周列表 */
+  .week-days{display:flex; flex-direction:column;}
+  .day-row{display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid var(--line); border-radius:8px;}
+  .day-row:last-child{border-bottom:none;}
+  .day-row.today{background:#eaf3fe;}
+  .day-row.past{opacity:.75;}
+  .day-row .d{width:76px; flex-shrink:0;}
+  .day-row .d b{font-size:16px; display:block;}
+  .day-row .d span{font-size:13px; color:var(--muted);}
+  .day-row .who{width:118px; flex-shrink:0; font-size:17px; font-weight:600;}
+  .day-row .who em{font-style:normal; font-size:12px; color:var(--orange); display:block; font-weight:normal;}
+  .day-row .note{flex:1; font-size:14px; color:#5a6570; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .day-row .note.none{color:#c2c9d1;}
+  /* 按钮 */
+  .btn{display:inline-block; border:none; border-radius:10px; padding:12px 20px; font-size:16px; cursor:pointer; color:#fff; font-family:inherit;}
+  .btn:active{opacity:.85;}
+  .btn-blue{background:var(--blue);} .btn-green{background:var(--green);} .btn-orange{background:var(--orange);} .btn-red{background:var(--red);} .btn-gray{background:#95a1ad;} .btn-purple{background:var(--purple);}
+  .btn-block{width:100%; display:block; margin-top:10px;}
+  .btn-sm{padding:7px 13px; font-size:14px; border-radius:8px; flex-shrink:0;}
+  .btn-row{display:flex; gap:10px; margin-top:12px;}
+  .btn-row .btn{flex:1;}
+  textarea,input[type=text],input[type=date],select{width:100%; font-size:17px; padding:10px 12px; border-radius:10px; border:2px solid var(--line); font-family:inherit;}
+  textarea{min-height:76px; resize:vertical;}
+  label{display:block; font-size:14px; color:var(--muted); margin:10px 0 4px;}
+  .hint{font-size:13.5px; color:var(--muted); margin-top:8px;}
+  .locked{background:#fdf5e4; border:1px solid #f0ddb0; color:#9a7b1e; border-radius:10px; padding:8px 12px; font-size:14px; margin-bottom:8px;}
+  /* 统计 */
+  .stat-row{display:flex; align-items:center; gap:10px; margin:10px 0;}
+  .stat-row .nm{width:104px; font-size:16px; font-weight:600; display:flex; align-items:center; gap:5px; overflow:hidden; white-space:nowrap;}
+  .stat-row .nm .av{width:34px;height:34px;border-radius:50%;font-size:18px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+  .bar-bg{flex:1; background:#edf0f4; border-radius:9px; height:30px; overflow:hidden;}
+  .bar{height:100%; border-radius:9px; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; color:#fff; font-size:13.5px; font-weight:600; min-width:58px;}
+  .stat-row .sub{width:118px; font-size:12.5px; color:var(--muted); text-align:right;}
+  /* 人员行 */
+  .person-row{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; margin-bottom:8px;}
+  .person-row .av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0;}
+  .person-row .info{flex:1; min-width:0;}
+  .person-row .nm{font-size:17px; font-weight:600;}
+  .person-row .sx{font-size:13px; color:var(--muted);}
+  .person-row .ord{font-size:12px; color:var(--blue); background:#eaf3fe; border-radius:6px; padding:2px 8px; flex-shrink:0;}
+  /* 历史 */
+  .hist-item{border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .hist-item .head{display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:600;}
+  .badge{font-size:12px; border-radius:6px; padding:2px 8px; color:#fff; font-weight:normal;}
+  .b-swap{background:var(--orange);} .b-lock{background:#95a1ad;}
+  .hist-day{display:flex; gap:8px; font-size:14px; padding:4px 0; border-bottom:1px dotted #eef1f5; align-items:baseline;}
+  .hist-day:last-child{border-bottom:none;}
+  .hist-day .d{width:82px; color:var(--muted); flex-shrink:0;}
+  .hist-day .w{width:66px; font-weight:600; flex-shrink:0;}
+  .hist-day .n{color:#5a6570; white-space:pre-wrap;}
+  /* 弹窗 */
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff; border-radius:16px; padding:20px 18px; max-width:520px; width:100%; max-height:88vh; overflow:auto;}
+  .modal h3{font-size:19px; margin-bottom:8px;}
+  .toast{position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#2c3e50; color:#fff; font-size:15px; padding:10px 22px; border-radius:24px; z-index:99; display:none; max-width:88%;}
+  .hidden{display:none;}
+  .tabs{display:flex; gap:6px; background:#fff; border-radius:12px; padding:5px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .tabs button{flex:1; padding:10px 4px; font-size:15px; border:none; border-radius:9px; background:transparent; color:var(--muted); cursor:pointer; font-family:inherit;}
+  .tabs button.on{background:var(--blue); color:#fff; font-weight:600;}
+  .pick-row{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;}
+  .pick-row button{flex:1 1 40%; padding:14px 6px; font-size:16px; border-radius:12px; border:2px solid var(--line); background:#fafbfc; cursor:pointer; font-family:inherit;}
+  .pick-row button.sel{border-color:var(--blue); background:#eaf3fe; font-weight:600;}
+  .swap-tag{font-size:12px; color:var(--orange); border:1px solid #f3c892; background:#fdf3e4; border-radius:6px; padding:1px 7px; flex-shrink:0;}
+</style>
+</head>
+<body>
+<header><div class="wrap" style="padding-bottom:0">
+  <h1>📅 陪护值班表</h1>
+  <div class="sub" id="todayLine"></div>
+</div></header>
+
+<!-- 访问口令 -->
+<div id="lockScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#3a7bd5,#5a9ae0);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:28px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.2);">
+    <div style="font-size:40px;margin-bottom:6px;">🔒</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:4px;">陪护值班表</div>
+    <div style="font-size:15px;color:#8a94a0;margin-bottom:18px;">请输入四位口令</div>
+    <div id="pinDots" style="display:flex;gap:14px;justify-content:center;margin-bottom:8px;">
+      <span class="pin"></span><span class="pin"></span><span class="pin"></span><span class="pin"></span>
+    </div>
+    <div id="pinErr" style="color:#d94040;font-size:14px;height:20px;margin-bottom:6px;"></div>
+    <div id="pinPad" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"></div>
+    <div style="font-size:13px;color:#b0b7bf;margin-top:14px;">忘记口令请找家里管事的人问</div>
+  </div>
+</div>
+<style>
+  .pin{width:20px;height:20px;border-radius:50%;background:#e4e8ee;transition:.15s;}
+  .pin.on{background:#3a7bd5;transform:scale(1.1);}
+  #pinPad button{padding:16px 0;font-size:24px;font-weight:600;border:none;border-radius:12px;
+    background:#f4f6f9;color:#2c3e50;cursor:pointer;font-family:inherit;}
+  #pinPad button:active{background:#e4ebf5;}
+  #pinPad button.fn{font-size:17px;background:#eef1f5;color:#6b7785;}
+</style>
+
+<div class="wrap">
+  <!-- 首次设置 -->
+  <div class="card" id="setupCard">
+    <h2>🛠️ 开始使用 <span class="tag">值班人员可随时增减修改</span></h2>
+    <div id="setupPeople" style="margin-bottom:6px;"></div>
+    <label>从哪一周开始轮值？（每周日开始，下周六结束）</label>
+    <div id="wPickerSetup"></div>
+    <button class="btn btn-green btn-block" onclick="doSetup()">✅ 保存并开始使用</button>
+    <div class="hint">按周轮转：几个人就几周一轮。天数从这一周开始算起。人员变动请到"统计"页管理，历史记录不会丢。</div>
+  </div>
+
+  <div id="main" class="hidden">
+    <div class="tabs">
+      <button class="on" onclick="switchTab('tabNow',this)">值班</button>
+      <button onclick="switchTab('tabPlan',this)">排班</button>
+      <button onclick="switchTab('tabStat',this)">统计</button>
+    </div>
+
+    <!-- 值班：只为"登记"服务 -->
+    <div id="tabNow">
+      <div class="card">
+        <h2>今日值班 <span class="tag" id="nowWeekLabel"></span></h2>
+        <div class="today-card" id="todayCard"></div>
+      </div>
+      <div class="card">
+        <h2>本周安排（周日 — 周六）</h2>
+        <div class="week-days" id="daysRow"></div>
+        <div class="hint">点"登记"填写当天情况，当天可改，过后自动封存。</div>
+      </div>
+      <div class="card">
+        <h2>本周记录汇总 <span class="tag">已封存</span></h2>
+        <div id="thisWeekLogs"></div>
+      </div>
+    </div>
+
+    <!-- 排班：换人/改顺序/看未来，全部收在一处 -->
+    <div id="tabPlan" class="hidden">
+      <div class="card">
+        <h2>下周值班（可提前安排） <span class="tag" id="nextWeekLabel"></span></h2>
+        <div class="today-card" id="nextCard" style="margin-bottom:12px"></div>
+        <button class="btn btn-orange btn-block" onclick="openSwap(null)">🔄 下周换人 / 调班</button>
+        <div class="hint" id="nextHint"></div>
+      </div>
+      <div class="card">
+        <h2>接下来的排班 <span class="tag" id="planAnchorTag"></span></h2>
+        <div id="futureRow"></div>
+        <button class="btn btn-gray btn-block" onclick="openSwap(null)" style="font-size:15px;">🔄 换人 / 调班</button>
+        <div class="hint">点上面的按钮可以改任意一天或改长期顺序，这一处就够了。</div>
+      </div>
+      <div class="card">
+        <h2>已调整的记录</h2>
+        <div id="swapInfo"></div>
+        <button class="btn btn-gray btn-block" onclick="openUndo()" style="font-size:15px;">↩️ 撤销未来的调整</button>
+      </div>
+    </div>
+
+    <div id="tabStat" class="hidden">
+      <div class="card">
+        <h2>值班天数 <span class="tag" id="statRange"></span></h2>
+        <div id="statBody"></div>
+        <button class="btn btn-gray btn-block" onclick="openHist()" style="font-size:15px;">📚 查看完整历史记录</button>
+      </div>
+      <div class="card">
+        <h2>值班人员 <span class="tag" id="peopleCount"></span></h2>
+        <div id="peopleList"></div>
+        <button class="btn btn-purple btn-block" onclick="openManage()">👥 管理人员（增减 / 编辑 / 调顺序）</button>
+      </div>
+      <div class="card">
+        <h2>设置</h2>
+        <button class="btn btn-gray btn-block" onclick="showDangerZone()" style="font-size:15px;">⚠️ 高级操作（一般不需要用）</button>
+        <div id="dangerZone" class="hidden" style="margin-top:10px; border:1px dashed #e0b4b4; border-radius:10px; padding:12px;">
+          <div class="hint" style="color:#c0564f; margin-top:0;">危险区：清空后所有值班记录都无法恢复，请谨慎操作。</div>
+          <button class="btn btn-red btn-block" onclick="resetAll()" style="font-size:15px;">🗑️ 确认清空全部数据</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </div>
+</div>
+
+<!-- 完整历史 -->
+<div class="modal-bg" id="histModal"><div class="modal">
+  <h3>📚 完整历史记录 <span style="font-size:13px;color:#8a94a0;font-weight:normal;">已封存，不可修改</span></h3>
+  <div id="histBody"></div>
+  <button class="btn btn-gray btn-block" onclick="closeModal('histModal')">关闭</button>
+</div></div>
+
+<!-- 统一的"换人 / 调班"弹窗 -->
+<div class="modal-bg" id="swapModal"><div class="modal">
+  <h3>🔄 换人 / 调班</h3>
+  <div class="hint" style="margin-top:0;" id="swIntro">请选择要改的范围</div>
+  <div class="pick-row" id="swModeRow">
+    <button data-m="day" class="sel" onclick="setSwMode(this)">改几天</button>
+    <button data-m="week" onclick="setSwMode(this)">改整周</button>
+    <button data-m="long" onclick="setSwMode(this)">长期改顺序</button>
+  </div>
+  <div id="swDayBox">
+    <label>从哪天</label><input type="date" id="swFrom">
+    <label>到哪天</label><input type="date" id="swTo">
+  </div>
+  <div id="swWeekBox" class="hidden">
+    <label>改哪一周</label>
+    <div id="wPickerWeek"></div>
+  </div>
+  <div id="swLongBox" class="hidden">
+    <label>从哪一周开始变</label>
+    <div id="wPickerLong"></div>
+  </div>
+  <div id="swOrderBox" class="hidden" style="margin-top:12px;">
+    <label style="margin-top:0;">轮值顺序（按点选先后自动排队）</label>
+    <div id="swOrderList"></div>
+    <div class="hint" style="margin-top:4px;">点上面的人名即可依次排入；点已排入的人名可取消。</div>
+  </div>
+  <label id="swPickLabel">换成谁来值班</label>
+  <div id="swPick"></div>
+  <div id="swPreview"></div>
+  <button class="btn btn-orange btn-block" onclick="doSw()">✅ 确认</button>
+  <button class="btn btn-gray btn-block" onclick="closeModal('swapModal')">取消</button>
+  <div class="hint" id="swFoot"></div>
+</div></div>
+
+<!-- 撤销 -->
+<div class="modal-bg" id="undoModal"><div class="modal">
+  <h3>↩️ 撤销未来的调整</h3>
+  <div id="undoList"></div>
+  <button class="btn btn-gray btn-block" onclick="closeModal('undoModal')">关闭</button>
+</div></div>
+
+<!-- 登记弹窗 -->
+<div class="modal-bg" id="logModal"><div class="modal">
+  <h3 id="logTitle"></h3>
+  <div id="logWho"></div>
+  <label>这一天照顾情况（吃药、身体、饮食、有什么事）</label>
+  <textarea id="logText" placeholder="例如：今天量了血压，正常。晚饭吃了粥。"></textarea>
+  <button class="btn btn-green btn-block" onclick="saveDayLog()">💾 保存登记</button>
+  <button class="btn btn-gray btn-block" onclick="closeModal('logModal')">取消</button>
+</div></div>
+
+<!-- 人员管理 -->
+<div class="modal-bg" id="manageModal"><div class="modal">
+  <h3>👥 管理值班人员</h3>
+  <div id="manageList"></div>
+  <button class="btn btn-green btn-block" onclick="openAddPerson()">➕ 添加人员</button>
+  <button class="btn btn-gray btn-block" onclick="closeModal('manageModal')">完成</button>
+  <div class="hint">删除人员：过去的值班记录和统计都保留，今后不再排班。改动不影响历史记录。</div>
+</div></div>
+
+<!-- 添加/编辑人员 -->
+<div class="modal-bg" id="personModal"><div class="modal">
+  <h3 id="personTitle"></h3>
+  <label>姓名</label><input type="text" id="pName" maxlength="10">
+  <label>性别</label>
+  <select id="pGender"><option value="female">女 👩</option><option value="male">男 👨</option></select>
+  <button class="btn btn-green btn-block" onclick="savePerson()">💾 保存</button>
+  <button class="btn btn-gray btn-block" onclick="closeModal('personModal')">取消</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+function avatarOf(p){ return p.gender==='male' ? '👨' : '👩'; }
+const PCOLORS=['#3a7bd5','#d94040','#2e9e5b','#e8890c','#7e57c2','#0097a7','#c2185b','#5d6d7e'];
+const WD=['周日','周一','周二','周三','周四','周五','周六'];
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2400); }
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+
+/* 一周：周日 — 周六 */
+function weekStartOf(d){ const dt=new Date(d); dt.setDate(dt.getDate()-dt.getDay()); dt.setHours(0,0,0,0); return dt; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function fmtDate(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function fmtCN(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日'; }
+function todayStr(){ return fmtDate(new Date()); }
+function esc(s){ return s.replace(/</g,'&lt;'); }
+function parseK(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
+function diffDays(k1,k2){ return Math.round((parseK(k2)-parseK(k1))/86400000); }
+
+let DB=null;
+/* ===== 云端存储（四人共享同一份数据） ===== */
+const API='/api/data';
+let REV=0;              /* 服务端数据版本号，用于并发保护 */
+let PENDING=null;       /* 防抖保存定时器 */
+
+async function load(){
+  try{
+    const r=await fetch(API,{cache:'no-store'});
+    if(r.status===401){ showLock(); return false; }
+    const j=await r.json();
+    DB=j.data||null; REV=j.rev||0;
+    /* 同时在本机留一份副本，断网时能看 */
+    try{ localStorage.setItem('dutyLocalCopy', JSON.stringify(DB)); }catch(e){}
+    return true;
+  }catch(e){
+    /* 网络失败：用本机副本只读显示 */
+    try{ const c=localStorage.getItem('dutyLocalCopy'); if(c){ DB=JSON.parse(c); OFFLINE=true; return true; } }catch(e2){}
+    alert('网络连接失败，请检查网络后重新打开。');
+    return false;
+  }
+}
+let OFFLINE=false;
+/* 保存：立即提交服务端，带版本号；冲突则提示 */
+async function save(){
+  if(OFFLINE){ toast('离线状态，改动暂未保存'); return; }
+  try{
+    const r=await fetch(API,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rev:REV, data:DB})
+    });
+    if(r.status===409){
+      const j=await r.json();
+      REV=j.rev||REV;
+      if(j.data) DB=j.data;
+      render();
+      toast('有人刚刚改过，已刷新为最新数据，请重试这次操作');
+      return;
+    }
+    const j=await r.json();
+    if(j.rev) REV=j.rev;
+    try{ localStorage.setItem('dutyLocalCopy', JSON.stringify(DB)); }catch(e){}
+  }catch(e){
+    OFFLINE=true; toast('保存失败，请检查网络');
+    setTimeout(()=>{OFFLINE=false;},4000);
+  }
+}
+
+/* 人员 */
+function personById(id){
+  const p=DB.people.find(p=>p.id===id); if(p) return p;
+  const a=DB.removed[id];
+  return a ? {id:id,name:a.name,gender:a.gender,deleted:true} : {id:id,name:'未知',gender:'female',deleted:true};
+}
+function pColor(id){
+  const i=DB.people.findIndex(p=>p.id===id);
+  if(i>=0) return PCOLORS[i%PCOLORS.length];
+  const a=DB.removed[id]; return a&&a.color ? a.color : '#95a1ad';
+}
+const pAvatar=id=>{ const p=personById(id); return p.deleted?'👤':avatarOf(p); };
+const pName=id=>personById(id).name;
+
+/* 排班：基础按"开始日期所在的周"轮转；若设过"调整排班锚点"，则从锚点那周起重算 */
+function baseOwnerId(k){
+  const N=DB.people.length; if(!N) return null;
+  if(k<DB.start) return null;
+  let refStart=DB.start, refIdx=0;
+  if(DB.rebase && k>=DB.rebase.week){
+    refStart=DB.rebase.week; refIdx=DB.rebase.idx;
+  }
+  const wkDiff=Math.round((weekStartOf(parseK(k))-weekStartOf(parseK(refStart)))/604800000);
+  return DB.people[((refIdx+wkDiff)%N+N)%N].id;
+}
+function ownerIdOf(k){ const w=DB.weeks[k]; return (w&&w.owner)?w.owner:baseOwnerId(k); }
+function getDay(k){ if(!DB.weeks[k]) DB.weeks[k]={}; return DB.weeks[k]; }
+
+/* 统计：严格从起始日到今天，按天计 */
+function stats(){
+  const cnt={}; DB.people.forEach(p=>cnt[p.id]=0);
+  const total=diffDays(DB.start,todayStr())+1;
+  for(let i=0;i<total;i++){
+    const k=fmtDate(addDays(parseK(DB.start),i));
+    const o=ownerIdOf(k); if(o) cnt[o]=(cnt[o]||0)+1;
+  }
+  return {cnt,total};
+}
+
+/* ===== 默认人员 ===== */
+const DEFAULT_PEOPLE=[
+  {name:'庆新',gender:'female'},{name:'庆荣',gender:'female'},
+  {name:'庆英',gender:'female'},{name:'立生',gender:'male'}
+];
+let draftPeople=null, draftMode=null, draftIndex=-1;
+
+function showSetup(){
+  if(!draftPeople) draftPeople=JSON.parse(JSON.stringify(DEFAULT_PEOPLE));
+  $('setupPeople').innerHTML=draftPeople.map((p,i)=>
+    '<div class="person-row"><span class="av" style="background:'+PCOLORS[i%PCOLORS.length]+'">'+avatarOf(p)+'</span>'+
+    '<div class="info"><div class="nm">'+esc(p.name)+'</div><div class="sx">'+(p.gender==='male'?'男':'女')+'</div></div>'+
+    '<span class="ord">第'+(i+1)+'位</span>'+
+    '<button class="btn btn-sm btn-blue" onclick="setupEdit('+i+')">改</button>'+
+    '<button class="btn btn-sm btn-red" onclick="setupDel('+i+')">删</button></div>').join('')+
+    '<button class="btn btn-sm btn-green" onclick="setupAdd()" style="margin-top:4px;">➕ 添加人员</button>';
+  if(!setupWeekK) setupWeekK=fmtDate(weekStartOf(new Date()));
+  renderWeekPicker('wPickerSetup', setupWeekK, 'setup');
+}
+function fillPersonForm(n,g){ $('pName').value=n; $('pGender').value=g; }
+function setupEdit(i){ draftMode='setup'; draftIndex=i; fillPersonForm(draftPeople[i].name,draftPeople[i].gender); openModal('personModal'); }
+function setupAdd(){ draftMode='setup'; draftIndex=-1; fillPersonForm('','female'); openModal('personModal'); }
+function setupDel(i){ if(confirm('确定删掉「'+draftPeople[i].name+'」吗？')){ draftPeople.splice(i,1); showSetup(); } }
+function savePerson(){
+  const name=$('pName').value.trim(); if(!name){ toast('请填写姓名'); return; }
+  const g=$('pGender').value;
+  if(draftMode==='setup'){
+    if(draftIndex>=0){ draftPeople[draftIndex].name=name; draftPeople[draftIndex].gender=g; }
+    else draftPeople.push({name:name,gender:g});
+    closeModal('personModal'); showSetup(); return;
+  }
+  if(editIdx>=0){ DB.people[editIdx].name=name; DB.people[editIdx].gender=g; save(); toast('已保存'); }
+  else{ DB.people.push({id:'p'+Date.now(),name:name,gender:g}); save(); toast('已添加「'+name+'」，从下一周起参与轮值'); }
+  closeModal('personModal'); renderManage(); render();
+}
+function doSetup(){
+  if(!draftPeople.length){ toast('至少要有一位值班人员'); return; }
+  if(!setupWeekK){ toast('请选择开始的那一周'); return; }
+  const names=draftPeople.map(p=>p.name);
+  if(new Set(names).size!==names.length){ toast('名字不能重复'); return; }
+  DB={ people:draftPeople.map((p,i)=>({id:'p'+(i+1)+'_'+Date.now(),name:p.name,gender:p.gender})),
+       removed:{}, start:setupWeekK, weeks:{} };
+  save(); $('setupCard').classList.add('hidden'); $('main').classList.remove('hidden'); render(); toast('设置完成 ✅');
+}
+
+/* ===== 口令锁 ===== */
+let pinBuf='';
+function showLock(){ $('lockScreen').style.display='flex'; }
+function hideLock(){ $('lockScreen').style.display='none'; }
+function buildPinPad(){
+  const keys=['1','2','3','4','5','6','7','8','9','clear','0','del'];
+  $('pinPad').innerHTML=keys.map(k=>{
+    if(k==='clear') return '<button class="fn" onclick="pinPress(\'clear\')">清空</button>';
+    if(k==='del')   return '<button class="fn" onclick="pinPress(\'del\')">删除</button>';
+    return '<button onclick="pinPress(\''+k+'\')">'+k+'</button>';
+  }).join('');
+}
+function pinPress(k){
+  if(k==='clear') pinBuf='';
+  else if(k==='del') pinBuf=pinBuf.slice(0,-1);
+  else if(pinBuf.length<4) pinBuf+=k;
+  document.querySelectorAll('#pinDots .pin').forEach((el,i)=>el.classList.toggle('on', i<pinBuf.length));
+  $('pinErr').textContent='';
+  if(pinBuf.length===4) setTimeout(pinCheck, 120);
+}
+async function pinCheck(){
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pinBuf})});
+    if(r.ok){
+      hideLock(); pinBuf='';
+      const ok=await load();
+      if(ok) startApp();
+    }else{
+      $('pinErr').textContent='口令不对，请再试一次';
+      pinBuf='';
+      document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
+    }
+  }catch(e){ $('pinErr').textContent='网络不通，请稍后再试'; pinBuf=''; }
+}
+
+async function init(){
+  buildPinPad();
+  const now=new Date();
+  $('todayLine').textContent='今天是 '+fmtCN(now)+' '+WD[now.getDay()];
+  const ok=await load();     /* 401 会自动显示锁屏 */
+  if(ok) startApp();
+}
+function startApp(){
+  hideLock();
+  if(DB){ $('setupCard').classList.add('hidden'); $('main').classList.remove('hidden'); render(); }
+  else showSetup();
+}
+function switchTab(id,btn){
+  ['tabNow','tabPlan','tabStat'].forEach(t=>$(t).classList.toggle('hidden',t!==id));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function render(){ renderNow(); renderThisWeekLogs(); renderPlan(); renderStat(); renderPeople(); renderHist(); }
+
+/* 下周预览 + 快捷换人 */
+/* 下周卡片 + 本周记录汇总 + 统一排班视图 */
+function renderNextWeek(){
+  const sun=weekStartOf(new Date()), ns=addDays(sun,7), t=todayStr();
+  $('nextWeekLabel').textContent=fmtCN(ns)+' — '+fmtCN(addDays(ns,6));
+  /* 下周主要是谁 */
+  const counts={};
+  for(let i=0;i<7;i++){ const o=ownerIdOf(fmtDate(addDays(ns,i))); if(o) counts[o]=(counts[o]||0)+1; }
+  const sorted=Object.keys(counts).sort((x,y)=>counts[y]-counts[x]);
+  const main=sorted[0];
+  $('nextCard').innerHTML = main
+    ? '<div class="av" style="background:'+pColor(main)+'">'+pAvatar(main)+'</div>'+
+      '<div class="txt"><div class="lbl">下周值班'+(sorted.length>1?'（有临时换人）':'')+'</div>'+
+      '<div class="nm" style="color:'+pColor(main)+';font-size:30px">'+esc(pName(main))+'</div></div>'
+    : '<div class="hint">下周还没有排到人。</div>';
+  let swapped=0;
+  for(let i=0;i<7;i++){ if((DB.weeks[fmtDate(addDays(ns,i))]||{}).owner) swapped++; }
+  $('nextHint').textContent = swapped
+    ? '下周有 '+swapped+' 天已临时换人。需要调整就点上面的按钮。'
+    : '如果要提前安排下周由谁值班，点上面的按钮选"改整周"即可。';
+}
+
+/* 本周记录汇总（值班页底部，只读） */
+function renderThisWeekLogs(){
+  const sun=weekStartOf(new Date()), t=todayStr();
+  let rows='', n=0;
+  for(let i=0;i<7;i++){
+    const k=fmtDate(addDays(sun,i)); if(k>=t) continue;
+    const w=DB.weeks[k]||{}; if(!w.log) continue;
+    const o=ownerIdOf(k); n++;
+    rows+='<div class="hist-day"><span class="d">'+fmtCN(parseK(k))+' '+WD[i]+'</span>'+
+      '<span class="w" style="color:'+(o?pColor(o):'#999')+'">'+esc(o?pName(o):'—')+'</span>'+
+      '<span class="n">'+esc(w.log)+'</span></div>';
+  }
+  $('thisWeekLogs').innerHTML = n? rows : '<div class="hint">本周还没有登记记录。</div>';
+}
+
+/* 排班页：下周卡片、未来排班、已调整记录 */
+function renderPlan(){
+  renderNextWeek();
+  const t=todayStr(), sun=weekStartOf(new Date());
+  /* 当前锚点说明 */
+  if(DB.rebase){
+    const ri=DB.rebase.idx, p=DB.people[ri];
+    $('planAnchorTag').textContent='已改顺序（从 '+DB.rebase.week+' 起'+(p?'，由 '+p.name+' 开始':'')+'）';
+  }else{
+    $('planAnchorTag').textContent='按原顺序轮值';
+  }
+  /* 未来 6 周：一行一周，紧凑 */
+  let f='';
+  for(let i=0;i<6;i++){
+    const ws=addDays(sun,i*7);
+    let cells='';
+    for(let j=0;j<7;j++){
+      const k=fmtDate(addDays(ws,j)), ao=ownerIdOf(k), bo=baseOwnerId(k);
+      const chg=(bo&&ao&&bo!==ao);
+      cells+='<div style="flex:1;text-align:center;min-width:0;">'+
+        '<div style="font-size:11px;color:#9aa4af;">'+WD[j].replace('周','')+'</div>'+
+        '<div style="font-size:13px;font-weight:'+(chg?'700':'400')+';color:'+(ao?pColor(ao):'#ccc')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+
+        (ao?esc(pName(ao)).slice(-2):'—')+'</div></div>';
+    }
+    f+='<div style="border:1px solid var(--line);border-radius:10px;padding:8px 6px;margin-bottom:8px;'+(i===0?'background:#eaf3fe;':'')+'">'+
+      '<div style="font-size:12.5px;color:#8a94a0;margin-bottom:4px;">'+fmtCN(ws)+' — '+fmtCN(addDays(ws,6))+
+      (i===0?'　本周':(i===1?'　下周':''))+'</div>'+
+      '<div style="display:flex;gap:2px;">'+cells+'</div></div>';
+  }
+  $('futureRow').innerHTML=f;
+  /* 已调整记录 */
+  const ovs=Object.keys(DB.weeks).filter(k=>DB.weeks[k].owner).sort();
+  let si='';
+  if(!ovs.length) si='<div class="hint">暂无临时换人记录。</div>';
+  else{
+    si='<div class="locked">';
+    ovs.slice(-10).forEach(k=>{ const w=DB.weeks[k];
+      si+=fmtCN(parseK(k))+' → '+esc(pName(w.owner))+(k<t?'（已过）':'')+'<br>'; });
+    si+=ovs.length>10?'<span style="color:#b09a5c">…共 '+ovs.length+' 天有调整</span>':'';
+    si+='</div>';
+  }
+  if(DB.rebase){
+    si+='<div class="hint">📌 已长期改顺序：从 '+DB.rebase.week+' 那周起，之后每周自动按新顺序轮值。</div>';
+  }
+  $('swapInfo').innerHTML=si;
+}
+
+function renderNow(){
+  const sun=weekStartOf(new Date()), t=todayStr();
+  $('nowWeekLabel').textContent=fmtCN(sun)+' — '+fmtCN(addDays(sun,6));
+  const o=ownerIdOf(t);
+  $('todayCard').innerHTML = o
+    ? '<div class="av" style="background:'+pColor(o)+'">'+pAvatar(o)+'</div>'+
+      '<div class="txt"><div class="lbl">今天值班</div><div class="nm" style="color:'+pColor(o)+'">'+esc(pName(o))+'</div></div>'
+    : '<div class="hint">今天不在值班期间（早于开始日期 '+DB.start+'）。</div>';
+  let html='';
+  for(let i=0;i<7;i++){
+    const k=fmtDate(addDays(sun,i)), bo=baseOwnerId(k), ao=ownerIdOf(k), w=DB.weeks[k]||{};
+    const changed=bo&&ao&&bo!==ao;
+    const isToday=(k===t), past=(k<t);
+    html+='<div class="day-row'+(isToday?' today':(past?' past':''))+'">'+
+      '<div class="d"><b>'+WD[i]+'</b><span>'+fmtCN(parseK(k))+'</span></div>'+
+      '<div class="who" style="color:'+(ao?pColor(ao):'#bbb')+'">'+
+        (ao?pAvatar(ao)+' '+esc(pName(ao)):'—')+(changed?'<em>原 '+esc(pName(bo))+'，已换人</em>':'')+'</div>'+
+      '<div class="note'+(w.log?'':' none')+'">'+(w.log?esc(w.log):(past?'未登记':'还没登记'))+'</div>'+
+      '<button class="btn btn-sm '+(past?'btn-gray':'btn-green')+'" onclick="openDayLog(\''+k+'\')">'+(past?'查看':'登记')+'</button>'+
+      (past?'':'<button class="btn btn-sm btn-orange" onclick="openSwap(\''+k+'\')">换人</button>')+
+      '</div>';
+  }
+  $('daysRow').innerHTML=html;
+  /* 换班摘要 */
+  const ovs=Object.keys(DB.weeks).filter(k=>DB.weeks[k].owner).sort();
+  let si='';
+  if(!ovs.length) si='<div class="hint">暂无临时换班，每天按轮值顺序。</div>';
+  else{
+    si='<div class="locked">';
+    ovs.slice(-8).forEach(k=>{ const w=DB.weeks[k];
+      si+=fmtCN(parseK(k))+' → '+esc(pName(w.owner))+(w.reason?'（'+esc(w.reason)+'）':'')+(k<t?'　已过':'')+'<br>'; });
+    si+='</div>';
+  }
+  if(DB.rebase){
+    const ri=DB.rebase.idx, p=DB.people[ri];
+    si+='<div class="hint">📌 已改排班：从 '+DB.rebase.week+' 那周起按新顺序轮值'+(p?'（由 '+esc(p.name)+' 开始）':'')+
+      '　<a href="javascript:clearRebase()" style="color:#d94040;">恢复原顺序</a></div>';
+  }
+  $('swapInfo').innerHTML=si;
+}
+
+/* ===== 登记 ===== */
+function openDayLog(k){
+  const o=ownerIdOf(k), w=getDay(k), past=(k<todayStr());
+  $('logTitle').textContent=fmtCN(parseK(k))+' '+WD[parseK(k).getDay()];
+  $('logWho').innerHTML='值班人：<b style="color:'+(o?pColor(o):'#999')+'">'+(o?pAvatar(o)+' '+esc(pName(o)):'—')+'</b> '+
+    (past?'<span class="badge b-lock">已封存</span>':'<span class="badge" style="background:var(--green)">可修改</span>');
+  $('logText').value=w.log||''; $('logText').disabled=past;
+  $('logModal').dataset.date=k; openModal('logModal');
+}
+function saveDayLog(){
+  const k=$('logModal').dataset.date;
+  if(k<todayStr()){ toast('已封存，不能修改'); return; }
+  getDay(k).log=$('logText').value.trim(); save(); closeModal('logModal'); render(); toast('已保存 ✅');
+}
+
+/* ===== 统一的换人 / 调班 ===== */
+let swMode='day', swTarget=null, swInitDate=null, swQueue=[];
+let swWeekK=null, swLongK=null;  /* 以周一/周日所在周的周日字符串表示 */
+let setupWeekK=null;             /* 初始设置页选中的周 */
+const DOW=['周日','周一','周二','周三','周四','周五','周六'];
+
+function openSwap(dateStr){
+  if(!DB.people.length){ toast('请先添加值班人员'); return; }
+  swInitDate=dateStr||null;
+  const sun=weekStartOf(new Date()), nextSun=fmtDate(addDays(sun,7));
+  /* 默认：若传入日期在未来，按"改几天"并以那天为起点；否则默认改下周整周 */
+  const baseWeek = (dateStr&&dateStr>todayStr()) ? fmtDate(weekStartOf(parseK(dateStr))) : nextSun;
+  if(dateStr && dateStr>todayStr()){
+    setSwMode(document.querySelector('#swModeRow button[data-m="day"]'),true);
+    $('swFrom').value=dateStr; $('swTo').value=dateStr;
+  }else{
+    setSwMode(document.querySelector('#swModeRow button[data-m="week"]'),true);
+    $('swFrom').value=nextSun; $('swTo').value=fmtDate(addDays(sun,13));
+  }
+  swWeekK=baseWeek; swLongK=baseWeek;
+  renderWeekPickers();
+  $('swPick').innerHTML='<div class="pick-row">'+DB.people.map(p=>
+    '<button data-id="'+p.id+'" onclick="pickSw(this)">'+avatarOf(p)+' '+esc(p.name)+'</button>').join('')+'</div>';
+  swTarget=null; swQueue=[];
+  openModal('swapModal');
+  renderSwPick();
+  updateSwPreview();
+}
+function setSwMode(btn, silent){
+  swMode=btn.dataset.m;
+  document.querySelectorAll('#swModeRow button').forEach(b=>b.classList.toggle('sel',b===btn));
+  $('swDayBox').classList.toggle('hidden', swMode!=='day');
+  $('swWeekBox').classList.toggle('hidden', swMode!=='week');
+  $('swLongBox').classList.toggle('hidden', swMode!=='long');
+  $('swOrderBox').classList.toggle('hidden', swMode!=='long');
+  $('swPickLabel').classList.toggle('hidden', swMode==='long');
+  $('swPickLabel').textContent = swMode==='long' ? '点人名，按顺序排入下面列表' : '换成谁来值班';
+  const intro = swMode==='day' ? '只改指定的那几天，其他天不变（适合请几天假）。'
+              : swMode==='week' ? '整周改由同一个人值班（适合一个人整周有事）。'
+              : '从选定那周起，按新的人重新排序，之后自动轮转，不用再操作。';
+  $('swFoot').textContent = swMode==='long'
+    ? '只影响选定那周及以后，之前的记录和天数完全不变。'
+    : '只改那几天/那周，之后的轮值顺序不变。';
+  $('swIntro').textContent=intro;
+  if(!silent) updateSwPreview();
+}
+function pickSw(btn){
+  const id=btn.dataset.id;
+  if(swMode==='long'){
+    const i=swQueue.indexOf(id);
+    if(i>=0) swQueue.splice(i,1); else swQueue.push(id);
+    renderSwPick(); updateSwPreview(); return;
+  }
+  swTarget=id; renderSwPick(); updateSwPreview();
+}
+/* ===== 周选择器：一周一周跳 ===== */
+const WD_SHORT=['日','一','二','三','四','五','六'];
+function weekIndex(k){
+  if(!DB||!DB.start) return null;   /* 设置页还没建立数据，不显示"第几周" */
+  return Math.round((weekStartOf(parseK(k))-weekStartOf(parseK(DB.start)))/604800000)+1;
+}
+function renderWeekPickers(){
+  renderWeekPicker('wPickerWeek', swWeekK, 'week');
+  renderWeekPicker('wPickerLong', swLongK, 'long');
+  renderWeekPicker('wPickerSetup', setupWeekK, 'setup');
+}
+function renderWeekPicker(elId, currentK, which){
+  const el=$(elId); if(!el) return;
+  const cur=currentK||fmtDate(weekStartOf(new Date()));
+  const ws=weekStartOf(parseK(cur)), we=addDays(ws,6);
+  const tn=fmtDate(weekStartOf(new Date()));
+  const idx=weekIndex(cur);
+  const isSetup=(which==='setup');
+  let label;
+  if(idx===null) label = isSetup ? '开始的那一周' : '—';
+  else label = (idx===1?'第1周':(idx===0?'起始周前':(idx<0?'—':'第'+idx+'周')));
+  const fwd1 = isSetup ? '后一周 ▶▶' : '下周 ▶▶';
+  const fwd4 = isSetup ? '4周后 ▶▶' : '4周后 ▶▶';
+  const atLatest = isSetup && (cur>=fmtDate(weekStartOf(new Date())));
+  const tags=[];
+  if(cur===tn) tags.push('本周');
+  if(cur===fmtDate(addDays(weekStartOf(new Date()),7))) tags.push('下周');
+  if(cur<tn) tags.push('已过去');
+  el.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;margin-top:4px;">'+
+      '<button class="btn btn-sm btn-blue" style="padding:10px 14px;font-size:18px;" onclick="stepWeek(\''+which+'\',-1)">◀</button>'+
+      '<div style="flex:1;text-align:center;border:2px solid var(--line);border-radius:10px;padding:8px 4px;background:#fafbfc;">'+
+        '<div style="font-size:13px;color:#8a94a0;">'+label+(tags.length?' · '+tags.join(' '):'')+'</div>'+
+        '<div style="font-size:17px;font-weight:600;">'+fmtCN(ws)+' — '+fmtCN(we)+'</div>'+
+      '</div>'+
+      '<button class="btn btn-sm btn-blue" style="padding:10px 14px;font-size:18px;" onclick="stepWeek(\''+which+'\',1)">▶</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:6px;">'+
+      '<button class="btn btn-sm btn-gray" style="flex:1;'+(atLatest?'opacity:.45;':'')+'" onclick="jumpWeek(\''+which+'\',7)">'+fwd1+'</button>'+
+      '<button class="btn btn-sm btn-gray" style="flex:1;'+(atLatest?'opacity:.45;':'')+'" onclick="jumpWeek(\''+which+'\',28)">'+fwd4+'</button>'+
+    '</div>'+
+    '<div id="wList_'+which+'" class="hidden" style="margin-top:8px;max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:10px;"></div>'+
+    '<button class="btn btn-sm btn-gray btn-block" style="font-size:14px;margin-top:6px;" onclick="toggleWeekList(\''+which+'\',\''+cur+'\')">📋 展开月份，直接挑一周</button>';
+}
+function stepWeek(which,dir){
+  const cur = which==='week'?swWeekK:(which==='long'?swLongK:setupWeekK);
+  const nk=fmtDate(addDays(weekStartOf(parseK(cur)), dir*7));
+  if(which==='setup' && nk>fmtDate(weekStartOf(new Date()))) { toast('开始日期不能晚于本周（最早从本周开始）'); return; }
+  if(which==='week') swWeekK=nk; else if(which==='long') swLongK=nk; else setupWeekK=nk;
+  renderWeekPickers(); updateSwPreview();
+}
+function jumpWeek(which,days){
+  const cur = which==='week'?swWeekK:(which==='long'?swLongK:setupWeekK);
+  const nk=fmtDate(addDays(weekStartOf(parseK(cur)), days));
+  if(which==='setup' && nk>fmtDate(weekStartOf(new Date()))) { toast('开始日期不能晚于本周'); return; }
+  if(which==='week') swWeekK=nk; else if(which==='long') swLongK=nk; else setupWeekK=nk;
+  renderWeekPickers(); updateSwPreview();
+}
+function toggleWeekList(which, cur){
+  const el=$('wList_'+which); if(!el) return;
+  if(!el.classList.contains('hidden')){ el.classList.add('hidden'); return; }
+  /* 以当前选中周为基准，向前2周、向后10周 */
+  const ws0=addDays(weekStartOf(parseK(cur)),-14);
+  let h='';
+  for(let i=0;i<13;i++){
+    const ws=addDays(ws0,i*7), k=fmtDate(ws);
+    const idx=weekIndex(k);
+    const sel=(k===cur);
+    const isPast=(k<fmtDate(weekStartOf(new Date())));
+    const disabled=(which==='setup' && k>fmtDate(weekStartOf(new Date())));
+    h+='<div data-k="'+k+'" onclick="pickWeek(\''+which+'\',this.dataset.k)" style="padding:9px 12px;font-size:15px;cursor:pointer;border-bottom:1px solid #f0f2f5;'+
+       (sel?'background:#eaf3fe;font-weight:700;':'')+(isPast?'color:#b0b7bf;':'')+(disabled?'opacity:.35;':'')+'">'+
+       (idx!==null?'第'+idx+'周　':'')+fmtCN(ws)+' — '+fmtCN(addDays(ws,6))+(sel?'　✓':'')+'</div>';
+  }
+  el.innerHTML=h; el.classList.remove('hidden');
+}
+function pickWeek(which,k){
+  if(which==='setup' && k>fmtDate(weekStartOf(new Date()))) { toast('开始日期不能晚于本周'); return; }
+  if(which==='week') swWeekK=k; else if(which==='long') swLongK=k; else setupWeekK=k;
+  renderWeekPickers(); updateSwPreview();
+}
+
+/* 渲染人员点选区（长期模式显示序号） */
+function renderSwPick(){
+  if(swMode==='long'){
+    $('swPick').innerHTML='<div class="pick-row">'+DB.people.map(p=>{
+      const i=swQueue.indexOf(p.id);
+      const sel=i>=0;
+      return '<button data-id="'+p.id+'" class="'+(sel?'sel':'')+'" onclick="pickSw(this)">'+
+        (sel?'<b style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:50%;background:#fff;color:#3a7bd5;font-size:13px;margin-right:4px;">'+(i+1)+'</b>':'')+
+        avatarOf(p)+' '+esc(p.name)+'</button>';
+    }).join('')+'</div>';
+    /* 排队列表 */
+    const N=DB.people.length;
+    if(!swQueue.length){
+      $('swOrderList').innerHTML='<div class="hint" style="margin-top:0;">还没有选择。按您希望的轮值顺序，依次点上面的人名。</div>';
+    }else{
+      let h='';
+      swQueue.forEach((id,i)=>{
+        h+='<div class="day-row" style="border:1px solid var(--line);margin-bottom:6px;border-radius:10px;">'+
+          '<div style="width:30px;height:30px;border-radius:50%;background:'+pColor(id)+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;">'+(i+1)+'</div>'+
+          '<div class="who" style="color:'+pColor(id)+'">'+pAvatar(id)+' '+esc(pName(id))+'</div>'+
+          '<button class="btn btn-sm btn-gray" onclick="moveQueue('+i+',-1)">↑</button>'+
+          '<button class="btn btn-sm btn-gray" onclick="moveQueue('+i+',1)">↓</button>'+
+          '<button class="btn btn-sm btn-red" onclick="removeQueue('+i+')">✕</button></div>';
+      });
+      if(swQueue.length<N){
+        const rest=DB.people.filter(p=>swQueue.indexOf(p.id)<0);
+        h+='<div class="hint" style="color:#c08a2a;">还有 '+rest.length+' 人未排入：'+rest.map(p=>esc(p.name)).join('、')+'</div>';
+      }else{
+        h+='<div class="hint" style="color:#2e9e5b;">✓ 顺序已排好，点下面"确认"生效。</div>';
+      }
+      $('swOrderList').innerHTML=h;
+    }
+    return;
+  }
+  /* 非长期模式：单选 */
+  $('swPick').innerHTML='<div class="pick-row">'+DB.people.map(p=>
+    '<button data-id="'+p.id+'" class="'+(swTarget===p.id?'sel':'')+'" onclick="pickSw(this)">'+avatarOf(p)+' '+esc(p.name)+'</button>').join('')+'</div>';
+}
+function moveQueue(i,d){
+  const j=i+d; if(j<0||j>=swQueue.length) return;
+  const t=swQueue[i]; swQueue[i]=swQueue[j]; swQueue[j]=t;
+  renderSwPick(); updateSwPreview();
+}
+function removeQueue(i){ swQueue.splice(i,1); renderSwPick(); updateSwPreview(); }
+function updateSwPreview(){
+  const box=$('swPreview'); if(!box) return;
+  if(!$('swPick').innerHTML) return;
+  let txt='';
+  if(swMode==='day'){
+    const f=$('swFrom').value, t=$('swTo').value||f;
+    if(f&&t&&t>=f){ const n=diffDays(f,t)+1;
+      txt='将把 '+fmtCN(parseK(f))+(n>1?' 至 '+fmtCN(parseK(t))+'（共 '+n+' 天）':'')+
+          (swTarget?' 改为 '+esc(pName(swTarget))+' 值班':' 换人（请先选人）');
+    }else txt='请选择起止日期';
+  }else if(swMode==='week'){
+    const w=swWeekK; if(w){ const ws=weekStartOf(parseK(w));
+      txt='将把 '+fmtCN(ws)+' — '+fmtCN(addDays(ws,6))+' 整周'+(swTarget?' 改为 '+esc(pName(swTarget))+' 值班':' 换人（请先选人）');
+    }else txt='请选择要改的那一周';
+  }else{
+    const w=swLongK;
+    if(!w){ txt='请选择起始周'; }
+    else if(!swQueue.length){ txt='请在上面按顺序点选人名，排好轮值顺序'; }
+    else{
+      const ws=weekStartOf(parseK(w));
+      const names=swQueue.map(id=>pName(id));
+      const rest=DB.people.filter(p=>swQueue.indexOf(p.id)<0).map(p=>p.name);
+      const full=names.concat(rest); // 未排入的按原顺序接在后面
+      txt='从 '+fmtCN(ws)+' 那周起，轮值顺序为：<br><b>'+full.map((n,i)=>'<span style="color:'+pColor((swQueue[i]||DB.people.find(p=>p.name===n).id))+'">'+(i+1)+'.'+esc(n)+'</span>').join(' → ')+'</b>'+
+          '<br><span style="color:#8a94a0;font-size:13px;">之后一直按这个顺序轮</span>';
+    }
+  }
+  box.innerHTML='<div class="locked" style="margin:10px 0 0;">'+txt+'</div>';
+}
+function doSw(){
+  if(swMode==='day'){
+    const f=$('swFrom').value, t=$('swTo').value||f;
+    if(!f||t<f){ toast('请选好日期'); return; }
+    if(!swTarget){ toast('请先点选换成谁'); return; }
+    let n=0,d=parseK(f); const end=parseK(t);
+    while(d<=end){ const w=getDay(fmtDate(d)); w.owner=swTarget; w.reason=''; n++; d=addDays(d,1); }
+    save(); closeModal('swapModal'); render(); toast('已把 '+n+' 天改为 '+pName(swTarget)+' 值班 ✅'); return;
+  }
+  if(swMode==='week'){
+    const w=swWeekK; if(!w){ toast('请选择要改的那一周'); return; }
+    if(!swTarget){ toast('请先点选换成谁'); return; }
+    let d=weekStartOf(parseK(w)), n=0;
+    for(let i=0;i<7;i++){ const wd=getDay(fmtDate(d)); wd.owner=swTarget; wd.reason=''; n++; d=addDays(d,1); }
+    save(); closeModal('swapModal'); render(); toast('已把整周改为 '+pName(swTarget)+' 值班 ✅'); return;
+  }
+  /* 长期改顺序 */
+  const w=swLongK;
+  if(!w){ toast('请选择起始周'); return; }
+  if(!swQueue.length){ toast('请先按顺序点选人名'); return; }
+  const wk=fmtDate(weekStartOf(parseK(w)));
+  /* 真正调整人员数组顺序：已排入的按队列，未排入的保持原顺序接在后面 */
+  const head=swQueue.map(id=>DB.people.find(p=>p.id===id)).filter(Boolean);
+  const tail=DB.people.filter(p=>swQueue.indexOf(p.id)<0);
+  DB.people=head.concat(tail);
+  const idx=0; swTarget=head[0].id;
+  Object.keys(DB.weeks).forEach(k=>{ if(k>=wk&&k>=todayStr()){ delete DB.weeks[k].owner; delete DB.weeks[k].reason; } });
+  DB.rebase={week:wk, idx:idx};
+  save(); closeModal('swapModal'); render(); toast('已改排班：从 '+fmtCN(parseK(wk))+' 起按新顺序轮值 ✅');
+}
+function clearRebase(){
+  if(!DB.rebase){ toast('当前是原始顺序'); return; }
+  if(!confirm('确定恢复为最初的轮值顺序吗？')) return;
+  delete DB.rebase; save(); render(); toast('已恢复原顺序');
+}
+function openUndo(){
+  const t=todayStr();
+  const items=Object.keys(DB.weeks).filter(k=>DB.weeks[k].owner&&k>=t).sort();
+  let html='';
+  if(items.length){
+    html='<div class="week-days">'+items.map(k=>
+      '<div class="day-row"><div class="d"><b>'+fmtCN(parseK(k))+'</b></div>'+
+      '<div class="who" style="font-size:15px">'+esc(pName(DB.weeks[k].owner))+'</div>'+
+      '<button class="btn btn-sm btn-red" onclick="undoOne(\''+k+'\')">撤销</button></div>').join('')+'</div>';
+  }else html='<div class="hint">没有需要撤销的临时换人。</div>';
+  if(DB.rebase) html='<div class="locked">已设置"长期改顺序"（从 '+DB.rebase.week+' 起）。点下方按钮可恢复原顺序。</div>'+
+    '<button class="btn btn-gray btn-block" onclick="clearRebase();closeModal(\'undoModal\')">↩️ 恢复最初的轮值顺序</button>'+html;
+  $('undoList').innerHTML=html;
+  openModal('undoModal');
+}
+function undoOne(k){ delete getDay(k).owner; delete DB.weeks[k].reason; save(); closeModal('undoModal'); render(); toast('已撤销'); }
+
+/* ===== 统计 ===== */
+function renderStat(){
+  const s=stats(), N=Math.max(1,DB.people.length);
+  const max=Math.max(1,...Object.values(s.cnt));
+  $('statRange').textContent=DB.start+' 至今共 '+s.total+' 天';
+  $('statBody').innerHTML=DB.people.map((p,i)=>{
+    const c=s.cnt[p.id]||0, wks=Math.floor(c/7), ds=c%7;
+    const txt=wks>0?(ds>0? wks+' 周零 '+ds+' 天' : '整 '+wks+' 周'):(ds+' 天');
+    return '<div class="stat-row"><div class="nm"><span class="av" style="background:'+PCOLORS[i%PCOLORS.length]+'">'+avatarOf(p)+'</span>'+esc(p.name)+'</div>'+
+      '<div class="bar-bg"><div class="bar" style="width:'+Math.max(22,c/max*100)+'%;background:'+PCOLORS[i%PCOLORS.length]+'">'+txt+'</div></div>'+
+      '<div class="sub">共 '+c+' 天</div></div>';
+  }).join('')+'<div class="hint">严格从开始日期 '+DB.start+' 算到今天；换班的天算给实际值班的人。</div>';
+}
+
+/* ===== 人员 ===== */
+function renderPeople(){
+  const N=DB.people.length;
+  $('peopleCount').textContent=N+' 人 · '+N+'周一轮';
+  $('peopleList').innerHTML=DB.people.map((p,i)=>
+    '<div class="person-row"><span class="av" style="background:'+PCOLORS[i%PCOLORS.length]+'">'+avatarOf(p)+'</span>'+
+    '<div class="info"><div class="nm">'+esc(p.name)+'</div><div class="sx">'+(p.gender==='male'?'男':'女')+'</div></div>'+
+    '<span class="ord">轮值第'+(i+1)+'位</span></div>').join('');
+}
+function openManage(){ renderManage(); openModal('manageModal'); }
+function renderManage(){
+  $('manageList').innerHTML=DB.people.map((p,i)=>
+    '<div class="person-row"><span class="av" style="background:'+PCOLORS[i%PCOLORS.length]+'">'+avatarOf(p)+'</span>'+
+    '<div class="info"><div class="nm">'+esc(p.name)+'</div><div class="sx">'+(p.gender==='male'?'男':'女')+'</div></div>'+
+    '<button class="btn btn-sm btn-gray" onclick="moveP('+i+',-1)">↑</button>'+
+    '<button class="btn btn-sm btn-gray" onclick="moveP('+i+',1)">↓</button>'+
+    '<button class="btn btn-sm btn-blue" onclick="editP('+i+')">编辑</button>'+
+    '<button class="btn btn-sm btn-red" onclick="delP('+i+')">删除</button></div>').join('')||
+    '<div class="hint">还没有人员，请点"添加人员"。</div>';
+}
+let editIdx=-1;
+function editP(i){ editIdx=i; draftMode='db'; fillPersonForm(DB.people[i].name,DB.people[i].gender); openModal('personModal'); }
+function openAddPerson(){ editIdx=-1; draftMode='db'; fillPersonForm('','female'); openModal('personModal'); }
+function moveP(i,dir){
+  const j=i+dir; if(j<0||j>=DB.people.length) return;
+  const t=DB.people[i]; DB.people[i]=DB.people[j]; DB.people[j]=t;
+  save(); renderManage(); render();
+}
+function delP(i){
+  const p=DB.people[i];
+  if(!confirm('确定删除「'+p.name+'」吗？\n\n过去的值班记录和统计都会保留，今后不再排班。')) return;
+  DB.removed[p.id]={name:p.name,gender:p.gender,color:pColor(p.id)};
+  DB.people.splice(i,1); save(); renderManage(); render(); toast('已删除，历史记录保留');
+}
+
+/* ===== 历史 ===== */
+function renderHist(){
+  const sun=weekStartOf(new Date()), startWeek=weekStartOf(parseK(DB.start)), t=todayStr();
+  let html='', found=false;
+  for(let off=0;;off++){
+    const ws=addDays(sun,-off*7);
+    if(ws<startWeek) break;
+    let rows='', any=false;
+    for(let i=0;i<7;i++){
+      const k=fmtDate(addDays(ws,i));
+      if(k>=DB.start && k<t){
+        any=true; found=true;
+        const o=ownerIdOf(k), w=DB.weeks[k]||{};
+        rows+='<div class="hist-day"><span class="d">'+fmtCN(parseK(k))+' '+WD[i]+'</span>'+
+          '<span class="w" style="color:'+(o?pColor(o):'#999')+'">'+esc(o?pName(o):'—')+'</span>'+
+          (w.owner?'<span class="badge b-swap">换</span>':'')+
+          '<span class="n">'+(w.log?esc(w.log):'（未登记）')+'</span></div>';
+      }
+    }
+    if(any){
+      html+='<div class="hist-item"><div class="head"><span>'+fmtCN(ws)+' — '+fmtCN(addDays(ws,6))+'</span>'+
+        '<span class="badge b-lock">已封存</span></div><div style="margin-top:8px;">'+rows+'</div></div>';
+    }
+    if(off>200) break;
+  }
+  $('histBody').innerHTML=found?html:'<div class="hint">还没有历史记录。</div>';
+}
+function openHist(){ renderHist(); openModal('histModal');
+}
+
+function showDangerZone(){
+  if(confirm('这里只放"清空全部数据"等危险操作，确定要打开吗？')){
+    $('dangerZone').classList.remove('hidden');
+  }
+}
+function resetAll(){
+  if(confirm('确定清空全部数据吗？不能恢复！') && confirm('再次确认：真的要清空吗？')){
+    DB=null; save().then(()=>{ location.reload(); });
+  }
+}
+
+init();
+</script>
+</body>
+</html>
