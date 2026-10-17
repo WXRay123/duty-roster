@@ -455,7 +455,11 @@ function pinPress(k){
 }
 async function pinCheck(){
   try{
-    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pinBuf})});
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pinBuf})}).catch(()=>null);
+    if(r===null || r.status===404){
+      /* 纯静态托管：本地校验 */
+      return localPin();
+    }
     if(r.ok){
       hideLock(); pinBuf='';
       const ok=await load();
@@ -465,17 +469,16 @@ async function pinCheck(){
       pinBuf='';
       document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
     }
-  }catch(e){
-    /* 无后端（纯静态托管）：本地校验口令，数据存本机 */
-    if(pinBuf==='3598'){
-      hideLock(); pinBuf='';
-      const ok=await loadLocal();
-      if(ok) startApp();
-    }else{
-      $('pinErr').textContent='口令不对，请再试一次';
-      pinBuf='';
-      document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
-    }
+  }catch(e){ localPin(); }
+}
+function localPin(){
+  if(pinBuf==='3598'){
+    hideLock(); pinBuf='';
+    loadLocal().then(ok=>{ if(ok) startApp(); });
+  }else{
+    $('pinErr').textContent='口令不对，请再试一次';
+    pinBuf='';
+    document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
   }
 }
 /* 本地模式：数据只存本机 */
