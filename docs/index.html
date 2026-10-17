@@ -324,6 +324,7 @@ async function load(){
 let OFFLINE=false;
 /* 保存：立即提交服务端，带版本号；冲突则提示 */
 async function save(){
+  if(LOCAL){ try{ localStorage.setItem('dutyLocal6', JSON.stringify(DB)); }catch(e){} return; }
   if(OFFLINE){ toast('离线状态，改动暂未保存'); return; }
   try{
     const r=await fetch(API,{
@@ -464,7 +465,25 @@ async function pinCheck(){
       pinBuf='';
       document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
     }
-  }catch(e){ $('pinErr').textContent='网络不通，请稍后再试'; pinBuf=''; }
+  }catch(e){
+    /* 无后端（纯静态托管）：本地校验口令，数据存本机 */
+    if(pinBuf==='3598'){
+      hideLock(); pinBuf='';
+      const ok=await loadLocal();
+      if(ok) startApp();
+    }else{
+      $('pinErr').textContent='口令不对，请再试一次';
+      pinBuf='';
+      document.querySelectorAll('#pinDots .pin').forEach(el=>el.classList.remove('on'));
+    }
+  }
+}
+/* 本地模式：数据只存本机 */
+let LOCAL=false;
+async function loadLocal(){
+  LOCAL=true;
+  try{ const c=localStorage.getItem('dutyLocal6'); DB=c?JSON.parse(c):null; }catch(e){ DB=null; }
+  return true;
 }
 
 async function init(){
